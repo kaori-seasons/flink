@@ -900,6 +900,7 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
         db.compactRange(kvStateInfo.columnFamilyHandle);
     }
 
+    // TODO 请求的大小
     @Nonnegative
     long getWriteBatchSize() {
         return writeBatchSize;
