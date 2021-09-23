@@ -28,6 +28,8 @@ import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.core.fs.CloseableRegistry;
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.memory.OpaqueMemoryResource;
@@ -62,7 +64,9 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -354,6 +358,13 @@ public class EmbeddedRocksDBStateBackend extends AbstractManagedMemoryStateBacke
     //  State holding data structures
     // ------------------------------------------------------------------------
 
+    private Counter fileRequest;
+
+    private Gauge requestSize;
+
+    private volatile long requestBytesSize = 0L;
+    private volatile double bytesPerRead = 0.0;
+
     @Override
     public <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
             Environment env,
@@ -368,6 +379,14 @@ public class EmbeddedRocksDBStateBackend extends AbstractManagedMemoryStateBacke
             @Nonnull Collection<KeyedStateHandle> stateHandles,
             CloseableRegistry cancelStreamRegistry)
             throws IOException {
+
+        //TODO 定义监控指标
+        // 统计正在处理的compact落盘文件请求数
+        // 请求大小，延迟时间
+        metricGroup.counter("fileRequest",fileRequest);
+        metricGroup.gauge("requestSize", this::getRequestSize);
+
+
         return createKeyedStateBackend(
                 env,
                 jobID,
@@ -381,6 +400,10 @@ public class EmbeddedRocksDBStateBackend extends AbstractManagedMemoryStateBacke
                 stateHandles,
                 cancelStreamRegistry,
                 1.0);
+    }
+
+    public long getRequestSize() {
+        return requestBytesSize;
     }
 
     @Override
@@ -437,6 +460,11 @@ public class EmbeddedRocksDBStateBackend extends AbstractManagedMemoryStateBacke
 
         LatencyTrackingStateConfig latencyTrackingStateConfig =
                 latencyTrackingConfigBuilder.setMetricGroup(metricGroup).build();
+
+        //TODO 文件数目 请求大小延时
+        metricGroup.counter("fileRequest").inc();
+
+
         RocksDBKeyedStateBackendBuilder<K> builder =
                 new RocksDBKeyedStateBackendBuilder<>(
                                 operatorIdentifier,
