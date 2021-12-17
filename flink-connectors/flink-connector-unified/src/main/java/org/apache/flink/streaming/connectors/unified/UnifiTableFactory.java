@@ -1,7 +1,6 @@
 package org.apache.flink.streaming.connectors.unified;
 
 import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.catalog.ResolvedCatalogTable;
@@ -9,12 +8,11 @@ import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.factories.DeserializationFormatFactory;
-import org.apache.flink.table.factories.DeserializationSchemaFactory;
 import org.apache.flink.table.factories.DynamicTableFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
-import org.apache.flink.table.factories.TableFactory;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,7 +29,7 @@ public abstract class UnifiTableFactory implements DynamicTableSourceFactory {
 
 
     //连接器选项
-    ConfigOption<Long> FXIED_DELAY = org.apache.flink.configuration.ConfigOptions
+    ConfigOption<Long> FIXED_DELAY = org.apache.flink.configuration.ConfigOptions
             .key("fixed-delay")
             .longType()
             .defaultValue(10 * 1000L)
@@ -125,7 +123,7 @@ public abstract class UnifiTableFactory implements DynamicTableSourceFactory {
                 FactoryUtil.createTableFactoryHelper(this,new InternalContext(changelogTable,context));
         DecodingFormat decodingFormat = helper.discoverDecodingFormat(DeserializationFormatFactory.class,FactoryUtil.FORMAT);
 
-        long fixedDelay = helper.getOptions().get(FXIED_DELAY);
+        long fixedDelay = helper.getOptions().get(FIXED_DELAY);
         int bulkParallelism = helper.getOptions().getOptional(BULK_PARAL).orElse(null).intValue();
 
         int changelogParallelism = helper.getOptions().getOptional(CHANGELOG_PARAL).orElse(null).intValue();
@@ -175,16 +173,21 @@ public abstract class UnifiTableFactory implements DynamicTableSourceFactory {
 
     @Override
     public String factoryIdentifier() {
-        return null;
+        return "unified";
     }
 
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
-        return null;
+       Set<ConfigOption<?>> options = new HashSet<>();
+       options.add(CHANGELOG_PARAL);
+        return options;
     }
 
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
-        return null;
+        Set<ConfigOption<?>> options = new HashSet<>();
+        options.add(FIXED_DELAY);
+        options.add(BULK_PARAL);
+        return options;
     }
 }
