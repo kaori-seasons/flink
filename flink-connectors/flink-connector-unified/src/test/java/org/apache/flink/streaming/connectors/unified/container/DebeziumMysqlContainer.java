@@ -10,7 +10,7 @@ public class DebeziumMysqlContainer extends ChaosContainer<DebeziumMysqlContaine
 
     private static final String IMAGE_NAME = "debezium/example-mysql:0.8";
 
-    protected DebeziumMysqlContainer(String clusterName, String image) {
+    public DebeziumMysqlContainer(String clusterName) {
         super(clusterName, IMAGE_NAME);
         this.withEnv("MYSQL_USER", "root");
         this.withEnv("MYSQL_PASSWORD", "123456");
