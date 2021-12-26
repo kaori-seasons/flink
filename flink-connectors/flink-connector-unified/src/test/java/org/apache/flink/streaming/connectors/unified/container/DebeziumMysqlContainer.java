@@ -8,13 +8,13 @@ public class DebeziumMysqlContainer extends ChaosContainer<DebeziumMysqlContaine
     public static final String NAME = "debezium-mysql-example";
     static final Integer[] PORTS = { 3306 };
 
-    private static final String IMAGE_NAME = "debezium/example-mysql:0.8";
+    public static final String IMAGE_NAME = "debezium/example-mysql:1.8.0.Final";
 
     public DebeziumMysqlContainer(String clusterName) {
         super(clusterName, IMAGE_NAME);
-        this.withEnv("MYSQL_USER", "root");
-        this.withEnv("MYSQL_PASSWORD", "123456");
-        this.withEnv("MYSQL_ROOT_PASSWORD", "123456");
+        this.withEnv("MYSQL_USER", "windwheel");
+        this.withEnv("MYSQL_PASSWORD", "knxy0616");
+        this.withEnv("MYSQL_ROOT_PASSWORD", "knxy0616");
     }
 
 

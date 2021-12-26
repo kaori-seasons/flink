@@ -7,6 +7,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
+
 @Slf4j
 public class KafkaContainer<SELF extends KafkaContainer<SELF>> extends GenericContainer<SELF> {
 
@@ -121,6 +123,16 @@ public class KafkaContainer<SELF extends KafkaContainer<SELF>> extends GenericCo
         if (result.getExitCode() != 0) {
             throw new IllegalStateException(result.toString());
         }
+    }
+
+    @Override
+    public SELF withNetwork(Network network) {
+        return super.withNetwork(network);
+    }
+
+    @Override
+    public SELF withMinimumRunningDuration(Duration minimumRunningDuration) {
+        return super.withMinimumRunningDuration(minimumRunningDuration);
     }
 
     protected String brokerAdvertisedListener(InspectContainerResponse containerInfo) {

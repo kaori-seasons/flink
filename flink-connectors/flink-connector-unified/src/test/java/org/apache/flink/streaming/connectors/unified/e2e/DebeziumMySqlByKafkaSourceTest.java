@@ -34,17 +34,11 @@ public class DebeziumMySqlByKafkaSourceTest extends SourceTester<DebeziumMysqlCo
 
         sourceConfig.put("database.hostname", DebeziumMysqlContainer.NAME);
         sourceConfig.put("database.port", "3306");
-        sourceConfig.put("database.user", "debezium");
-        sourceConfig.put("database.password", "dbz");
+        sourceConfig.put("database.user", "root");
+        sourceConfig.put("database.password", "knxy0616");
         sourceConfig.put("database.server.id", "184054");
         sourceConfig.put("database.server.name", "dbserver1");
         sourceConfig.put("database.whitelist", "inventory");
-        sourceConfig.put("database.history.pulsar.service.url", kafkaCluster);
-        sourceConfig.put("key.converter", converterClassName);
-        sourceConfig.put("value.converter", converterClassName);
-        sourceConfig.put("topic.namespace", "debezium/mysql-" +
-                (converterClassName.endsWith("AvroConverter") ? "avro" : "json"));
-
     }
 
     protected DebeziumMySqlByKafkaSourceTest(String sourceType) {
@@ -55,11 +49,14 @@ public class DebeziumMySqlByKafkaSourceTest extends SourceTester<DebeziumMysqlCo
     public void setServiceContainer(DebeziumMysqlContainer serviceContainer) {
         log.info("start debezium mysql server container.");
         debeziumMysqlContainer = serviceContainer;
-        kafkaCluster.startService(DebeziumMysqlContainer.NAME, debeziumMysqlContainer);
+        kafkaCluster.startService(DebeziumMysqlContainer.IMAGE_NAME, debeziumMysqlContainer);
     }
 
     @Override
     public void prepareSource() throws Exception {
+        this.debeziumMysqlContainer.execCmd(
+                "/bin/bash", "-c",
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 -e 'CREATE TABLE inventory.products'");
         log.info("debezium mysql server already contains preconfigured data.");
     }
 
@@ -67,10 +64,10 @@ public class DebeziumMySqlByKafkaSourceTest extends SourceTester<DebeziumMysqlCo
     public void prepareInsertEvent() throws Exception {
         this.debeziumMysqlContainer.execCmd(
                 "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u root -pdebezium -e 'SELECT * FROM inventory.products'");
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 -e 'SELECT * FROM inventory.products'");
         this.debeziumMysqlContainer.execCmd(
                 "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u root -pdebezium " +
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 " +
                         "-e \"INSERT INTO inventory.products(name, description, weight) " +
                         "values('test-debezium', 'This is description', 2.0)\"");
     }
@@ -79,21 +76,21 @@ public class DebeziumMySqlByKafkaSourceTest extends SourceTester<DebeziumMysqlCo
     public void prepareDeleteEvent() throws Exception {
         this.debeziumMysqlContainer.execCmd(
                 "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u root -pdebezium -e 'SELECT * FROM inventory.products'");
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 -e 'SELECT * FROM inventory.products'");
         this.debeziumMysqlContainer.execCmd(
                 "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u root -pdebezium " +
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 " +
                         "-e \"DELETE FROM inventory.products WHERE name='test-debezium'\"");
         this.debeziumMysqlContainer.execCmd(
                 "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u root -pdebezium -e 'SELECT * FROM inventory.products'");
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 -e 'SELECT * FROM inventory.products'");
     }
 
     @Override
     public void prepareUpdateEvent() throws Exception {
         this.debeziumMysqlContainer.execCmd(
                 "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u root -pdebezium " +
+                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 " +
                         "-e \"UPDATE inventory.products set description='update description', weight=10 " +
                         "WHERE name='test-debezium'\"");
     }

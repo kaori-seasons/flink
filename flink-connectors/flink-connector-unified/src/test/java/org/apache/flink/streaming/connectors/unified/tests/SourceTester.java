@@ -35,6 +35,8 @@ public abstract class SourceTester<ServiceContainerT extends GenericContainer> {
     protected final String sourceType;
     protected final Map<String, Object> sourceConfig;
 
+    protected int numEntriesToInsert = 1;
+    protected int numEntriesExpectAfterStart = 9;
 
     //DEBEZIUM解析出来的binlog格式
     public static final Set<String> DEBEZIUM_FIELD_SET = new HashSet<String>() {{
@@ -79,11 +81,9 @@ public abstract class SourceTester<ServiceContainerT extends GenericContainer> {
      * @param converterClassName
      * @throws Exception
      */
-    public void validateSourceResult(
-            Consumer consumer, int number,
+    public void validateSourceResult( int number,
             String eventType, String converterClassName) throws Exception {
         doPreValidationCheck(eventType);
-        validateSourceResultJson(consumer, number, eventType);
 
         doPostValidationCheck(eventType);
     }
@@ -115,8 +115,6 @@ public abstract class SourceTester<ServiceContainerT extends GenericContainer> {
             if (eventType != null) {
                 Assert.assertTrue(value.contains(this.eventContains(eventType, true)));
             }
-            consumer.acknowledge(msg);
-            msg = consumer.receive(1, TimeUnit.SECONDS);
         }
 
         Assert.assertEquals(recordsNumber, number);
