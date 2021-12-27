@@ -67,6 +67,7 @@ public class KafkaContainer<SELF extends KafkaContainer<SELF>> extends GenericCo
         return self();
     }
 
+
     public KafkaContainer withExternalZookeeper(String connectString) {
         externalZookeeperConnect = connectString;
         return self();
@@ -120,14 +121,26 @@ public class KafkaContainer<SELF extends KafkaContainer<SELF>> extends GenericCo
                 "--add-config",
                 "advertised.listeners=[" + String.join(",", getBootstrapServers(), brokerAdvertisedListener) + "]"
         );
-        if (result.getExitCode() != 0) {
-            throw new IllegalStateException(result.toString());
-        }
+//        if (result.getExitCode() != 0) {
+//            throw new IllegalStateException(result.toString());
+//        }
     }
 
     @Override
     public SELF withNetwork(Network network) {
         return super.withNetwork(network);
+    }
+
+
+    @Override
+    public SELF withNetworkAliases(String... aliases) {
+        return super.withNetworkAliases(aliases);
+    }
+
+
+    @Override
+    public SELF withStartupTimeout(Duration startupTimeout) {
+        return super.withStartupTimeout(startupTimeout);
     }
 
     @Override

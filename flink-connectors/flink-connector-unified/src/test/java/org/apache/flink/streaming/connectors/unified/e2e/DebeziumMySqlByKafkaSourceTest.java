@@ -4,8 +4,11 @@ import lombok.Getter;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.flink.streaming.connectors.unified.container.DebeziumContainer;
+import org.apache.flink.streaming.connectors.unified.container.DebeziumContainerWrapper;
 import org.apache.flink.streaming.connectors.unified.container.DebeziumMysqlContainer;
 import org.apache.flink.streaming.connectors.unified.container.KafkaContainer;
+import org.apache.flink.streaming.connectors.unified.container.MySQLContainer;
 import org.apache.flink.streaming.connectors.unified.container.PulsarContainer;
 import org.apache.flink.streaming.connectors.unified.tests.SourceTester;
 
@@ -13,14 +16,14 @@ import java.util.Map;
 
 @Slf4j
 @Getter
-public class DebeziumMySqlByKafkaSourceTest extends SourceTester<DebeziumMysqlContainer> {
+public class DebeziumMySqlByKafkaSourceTest extends SourceTester<MySQLContainer> {
 
 
     private static final String NAME = "debezium-mysql";
 
     private  String kafkaServiceUrl;
 
-    private DebeziumMysqlContainer debeziumMysqlContainer;
+    private MySQLContainer debeziumMysqlContainer;
 
     private  KafkaContainer kafkaCluster;
 
@@ -46,17 +49,16 @@ public class DebeziumMySqlByKafkaSourceTest extends SourceTester<DebeziumMysqlCo
     }
 
     @Override
-    public void setServiceContainer(DebeziumMysqlContainer serviceContainer) {
+    public void setServiceContainer(MySQLContainer serviceContainer) {
         log.info("start debezium mysql server container.");
         debeziumMysqlContainer = serviceContainer;
-        kafkaCluster.startService(DebeziumMysqlContainer.IMAGE_NAME, debeziumMysqlContainer);
+//        kafkaCluster.startService(debeziumMysqlContainer.getDockerImageName(), debeziumMysqlContainer);
     }
 
     @Override
     public void prepareSource() throws Exception {
         this.debeziumMysqlContainer.execCmd(
-                "/bin/bash", "-c",
-                "mysql -h 127.0.0.1 -u windwheel -p knxy0616 -e 'CREATE TABLE inventory.products'");
+                "/bin/bash", " export PATH=$PATH:/usr/local/mysql/bin/ ");
         log.info("debezium mysql server already contains preconfigured data.");
     }
 

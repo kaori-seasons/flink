@@ -2,9 +2,10 @@ package org.apache.flink.streaming.connectors.unified.e2e;
 
 import com.jayway.jsonpath.JsonPath;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
-import io.debezium.testing.testcontainers.DebeziumContainer;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.flink.streaming.connectors.unified.container.DebeziumContainer;
+import org.apache.flink.streaming.connectors.unified.container.DebeziumContainerWrapper;
 import org.apache.flink.streaming.connectors.unified.container.DebeziumMysqlContainer;
 import org.apache.flink.streaming.connectors.unified.container.KafkaContainer;
 
@@ -21,9 +22,13 @@ import org.junit.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 import org.testcontainers.utility.DockerImageName;
 
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -35,9 +40,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
+import static org.junit.Assert.assertNotNull;
 
 @Slf4j
 public class KafkaDebeziumSourceTests {
@@ -48,28 +56,12 @@ public class KafkaDebeziumSourceTests {
     private String clusterName;
     private static final DockerImageName KAFKA_TEST_IMAGE = DockerImageName.parse("confluentinc/cp-kafka:6.2.1");
     private static final DockerImageName ZOOKEEPER_TEST_IMAGE = DockerImageName.parse("confluentinc/cp-zookeeper:4.0.0");
-    private static final DockerImageName DEBEZIUM_IMAGE = DockerImageName.parse("debezium/example-mysql:1.8.0.Final");
+    private static final DockerImageName DEBEZIUM_IMAGE = DockerImageName.parse("debezium/connect:1.8.0.Final");
     public static final DockerImageName MYSQL_IMAGE = DockerImageName.parse("arm64v8/mariadb:10.7");
 
-    MySQLContainer mySQLContainer = new MySQLContainer("arm64v8/mariadb:10.7");
     //setup kafka server
     public static  Network network = Network.newNetwork();
 
-    public static GenericContainer<?> zookeeper = new GenericContainer<>(ZOOKEEPER_TEST_IMAGE)
-                .withNetwork(network)
-                .withNetworkAliases("zookeeper")
-                .withEnv("ZOOKEEPER_CLIENT_PORT", "2181");
-
-
-
-    public static KafkaContainer kafkaContainer = new KafkaContainer(KAFKA_TEST_IMAGE)
-            .withEmbeddedZookeeper()
-            .withNetwork(network)
-            .withMinimumRunningDuration(Duration.ofMillis(360000000));
-
-    public static DebeziumContainer debeziumContainer = new DebeziumContainer(DEBEZIUM_IMAGE)
-            .withNetwork(network)
-            .dependsOn(kafkaContainer);
 
     @Before
     public void setupCluster(){
@@ -84,7 +76,7 @@ public class KafkaDebeziumSourceTests {
     }
 
     @Test
-    public void testKafkaStart(){
+    public  void testKafkaStart(){
 
         try (
             KafkaContainer kafkaContainer = new KafkaContainer(KAFKA_TEST_IMAGE)
@@ -115,6 +107,99 @@ public class KafkaDebeziumSourceTests {
     public void testDebeziumMySqlConnect(String converterClassName, boolean jsonWithEnvelope) throws Exception {
 
 
+
+        GenericContainer<?> zookeeper = new GenericContainer<>(ZOOKEEPER_TEST_IMAGE)
+                .withNetwork(network)
+                .withNetworkAliases("zookeeper")
+                .withEnv("ZOOKEEPER_CLIENT_PORT", "2181");
+        KafkaContainer kafkaContainer = new KafkaContainer(KAFKA_TEST_IMAGE)
+                .withExternalZookeeper("zookeeper:2181")
+                .withStartupTimeout(Duration.ofHours(1))
+                .withNetworkAliases("kafka01")
+                .withNetwork(network);
+
+        //docker测试镜像的守护进程
+        GenericContainer<?> application = new GenericContainer<>(DockerImageName.parse("alpine"))
+                .withNetwork(network)
+                // }
+                .withNetworkAliases("dummy")
+                .withCommand("sleep 1000000000");
+        zookeeper.start();
+//        kafkaContainer.start();
+
+
+        //setup mysql server and init database
+        MySQLContainer mySQLContainer = new MySQLContainer(MYSQL_IMAGE)
+                .withConfigurationOverride("docker.mysql/my.cnf")
+                .withSetupSQL("docker.mysql/setup.sql")
+                .withUsername("windwheel")
+                .withPassword("knxy0616")
+                .withDatabaseName("inventory");
+//        mySQLContainer.start();
+
+
+        // setup debezium server
+        DebeziumContainer debeziumContainer = new DebeziumContainer(DEBEZIUM_IMAGE,"debezium-connector")
+                .withNetwork(network)
+                .withMinimumRunningDuration(Duration.ofHours(1))
+//                .withStartupAttempts(100)
+                .withStartupTimeout(Duration.ofHours(1))
+                .withKafka(kafkaContainer)
+                .dependsOn(kafkaContainer);
+
+
+        Startables.deepStart(Stream.of(kafkaContainer,mySQLContainer,debeziumContainer)).join();
+
+
+        // setup mock dynamic datasource
+        DebeziumMySqlByKafkaSourceTest sourceTester = new DebeziumMySqlByKafkaSourceTest(
+                kafkaContainer,
+                converterClassName);
+        sourceTester.getSourceConfig().put("json-with-envelope", jsonWithEnvelope);
+
+        sourceTester.setServiceContainer(mySQLContainer);
+
+
+        //FIXME 从Debezium解析的changelog操作 导入到kafka
+        // 替换成flink cdc
+
+        final int numEntriesToInsert = sourceTester.getNumEntriesToInsert();
+        sourceTester.prepareSource();
+        for (int i = 1; i <= numEntriesToInsert; i++) {
+            // prepare insert event
+            sourceTester.prepareInsertEvent();
+            log.info("inserted entry {} of {}", i, numEntriesToInsert);
+            // validate the source insert event
+            sourceTester.validateSourceResult(1, SourceTester.INSERT, converterClassName);
+        }
+
+        // prepare update event
+        sourceTester.prepareUpdateEvent();
+
+        // validate the source update event
+        sourceTester.validateSourceResult(numEntriesToInsert, SourceTester.UPDATE, converterClassName);
+
+        // prepare delete event
+        sourceTester.prepareDeleteEvent();
+
+        ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(mySQLContainer)
+                .with("database.server.name", "dbserver1.inventory.products");
+
+
+        KafkaConsumer<String, String> consumer = getConsumer(kafkaContainer);
+        consumer.subscribe(Arrays.asList("dbserver1."));
+
+
+
+
+    }
+
+
+    @Test
+    public void canRegisterPostgreSqlConnector() throws Exception {
+
+        //因为本机是m1 需要交叉编译 所以后面推上去需要替换成 mysql:8.0
+
         KafkaContainer kafkaContainer = new KafkaContainer(KAFKA_TEST_IMAGE)
                 .withEmbeddedZookeeper()
                 .withNetwork(network);
@@ -142,59 +227,11 @@ public class KafkaDebeziumSourceTests {
                 .withDatabaseName("inventory");
         mySQLContainer.start();
 
-        // setup unit test
-        DebeziumMySqlByKafkaSourceTest sourceTester = new DebeziumMySqlByKafkaSourceTest(
-                kafkaContainer,
-                converterClassName);
-        sourceTester.getSourceConfig().put("json-with-envelope", jsonWithEnvelope);
-
         // setup debezium mysql connector server
-        DebeziumMysqlContainer debeziumMysqlContainer = new DebeziumMysqlContainer(clusterName);
-        sourceTester.setServiceContainer(debeziumMysqlContainer);
-
-
-        //FIXME 从Debezium解析的changelog操作 导入到kafka
-        // 替换成flink cdc
-
-
-        final int numEntriesToInsert = sourceTester.getNumEntriesToInsert();
-        for (int i = 1; i <= numEntriesToInsert; i++) {
-            // prepare insert event
-            sourceTester.prepareInsertEvent();
-            log.info("inserted entry {} of {}", i, numEntriesToInsert);
-            // validate the source insert event
-            sourceTester.validateSourceResult(1, SourceTester.INSERT, converterClassName);
-        }
-
-        // prepare update event
-        sourceTester.prepareUpdateEvent();
-
-        // validate the source update event
-        sourceTester.validateSourceResult(numEntriesToInsert, SourceTester.UPDATE, converterClassName);
-
-        // prepare delete event
-        sourceTester.prepareDeleteEvent();
-
-
-
-
-    }
-
-
-    @Test
-    public void canRegisterPostgreSqlConnector() throws Exception {
-
-        //因为本机是m1 需要交叉编译 所以后面推上去需要替换成 mysql:8.0
-
-        mySQLContainer
-                .withConfigurationOverride("docker.mysql/mysql/my.cnf")
-                .withSetupSQL("docker.mysql/mysql/setup.sql")
-                .withUsername("root")
-                .withPassword("knxy0616")
-                .withDatabaseName("inventory");
-        mySQLContainer.start();
-        KafkaContainer kafkaContainer = new KafkaContainer(KAFKA_TEST_IMAGE);
-        kafkaContainer.start();
+        DebeziumContainer debeziumContainer = new DebeziumContainer(DEBEZIUM_IMAGE,"debezium-connector")
+                .withNetwork(network)
+                .dependsOn(kafkaContainer)
+                ;
 
         try (Connection connection = getConnection(mySQLContainer);
              Statement statement = connection.createStatement();
@@ -224,8 +261,8 @@ public class KafkaDebeziumSourceTests {
                     .with("database.history.kafka.topic","dbserver1.todo.todo");
 
 
-            debeziumContainer.registerConnector("my-connector",
-                    connector);
+//            debeziumContainer.registerConnector("my-connector",
+//                    connector);
 
 
             consumer.subscribe(Arrays.asList("dbserver1.todo.todo"));
@@ -262,7 +299,7 @@ public class KafkaDebeziumSourceTests {
                 postgresContainer.getPassword());
     }
 
-    private KafkaConsumer<String, String> getConsumer(
+    private static KafkaConsumer<String, String> getConsumer(
             KafkaContainer kafkaContainer) {
 
         return new KafkaConsumer<String,String>(
@@ -301,6 +338,11 @@ public class KafkaDebeziumSourceTests {
             sb.append((char) (ThreadLocalRandom.current().nextInt(26) + 'a'));
         }
         return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+//        testtDebeziumMySqlSourceJson();
+//        testKafkaStart();
     }
 
 

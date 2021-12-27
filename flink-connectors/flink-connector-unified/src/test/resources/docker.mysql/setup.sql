@@ -28,3 +28,12 @@ CREATE USER 'windwheel' IDENTIFIED BY 'knxy0616';
 -- DATABASE:  emptydb
 -- ----------------------------------------------------------------------------------------------------------------
 CREATE DATABASE inventory;
+
+USE inventory;
+CREATE TABLE products (
+                          id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                          name VARCHAR(255) NOT NULL DEFAULT 'flink',
+                          description VARCHAR(512),
+                          weight FLOAT
+);
+ALTER TABLE products AUTO_INCREMENT = 101;

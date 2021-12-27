@@ -1,11 +1,17 @@
 package org.apache.flink.streaming.connectors.unified.container;
 
+import com.github.dockerjava.api.DockerClient;
+
+import org.apache.flink.streaming.connectors.unified.tests.integration.ContainerExecResult;
+import org.apache.flink.streaming.connectors.unified.tests.utils.DockerUtils;
+
 import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Docker container for MySQL. The difference between this class and {@link
@@ -23,9 +29,9 @@ public class MySQLContainer extends JdbcDatabaseContainer {
     private static final String SETUP_SQL_PARAM_NAME = "SETUP_SQL";
     private static final String MYSQL_ROOT_USER = "root";
 
-    private String databaseName = "test";
-    private String username = "test";
-    private String password = "test";
+    private String databaseName = "inventory";
+    private String username = "windwheel";
+    private String password = "knxy0616";
 
     public MySQLContainer() {
         this(DEFAULT_TAG);
@@ -48,11 +54,11 @@ public class MySQLContainer extends JdbcDatabaseContainer {
     @Override
     protected void configure() {
         optionallyMapResourceParameterAsVolume(
-                MY_CNF_CONFIG_OVERRIDE_PARAM_NAME, "/etc/mysql/", "mysql-default-conf");
+                MY_CNF_CONFIG_OVERRIDE_PARAM_NAME, "docker/mysql/", "my.cnf");
 
         if (parameters.containsKey(SETUP_SQL_PARAM_NAME)) {
             optionallyMapResourceParameterAsVolume(
-                    SETUP_SQL_PARAM_NAME, "/docker-entrypoint-initdb.d/", "N/A");
+                    SETUP_SQL_PARAM_NAME, "docker/mysql/", "setup.sql");
         }
 
         addEnv("MYSQL_DATABASE", databaseName);
@@ -163,5 +169,30 @@ public class MySQLContainer extends JdbcDatabaseContainer {
     public MySQLContainer withPassword(final String password) {
         this.password = password;
         return this;
+    }
+
+
+    public ContainerExecResult execCmd(String... commands) throws Exception {
+        DockerClient client = this.getDockerClient();
+        String dockerId = this.getContainerId();
+        return DockerUtils.runCommand(client, dockerId, commands);
+    }
+
+    public CompletableFuture<ContainerExecResult> execCmdAsync(String... commands) throws Exception {
+        DockerClient client = this.getDockerClient();
+        String dockerId = this.getContainerId();
+        return DockerUtils.runCommandAsync(client, dockerId, commands);
+    }
+
+    public ContainerExecResult execCmdAsUser(String userId, String... commands) throws Exception {
+        DockerClient client = this.getDockerClient();
+        String dockerId = this.getContainerId();
+        return DockerUtils.runCommandAsUser(userId, client, dockerId, commands);
+    }
+
+    public CompletableFuture<ContainerExecResult> execCmdAsyncAsUser(String userId, String... commands) throws Exception {
+        DockerClient client = this.getDockerClient();
+        String dockerId = this.getContainerId();
+        return DockerUtils.runCommandAsyncAsUser(userId, client, dockerId, commands);
     }
 }

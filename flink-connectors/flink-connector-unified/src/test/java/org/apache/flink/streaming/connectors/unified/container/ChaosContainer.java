@@ -8,6 +8,7 @@ import org.apache.flink.streaming.connectors.unified.tests.integration.Container
 import org.apache.flink.streaming.connectors.unified.tests.utils.DockerUtils;
 
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Base64;
 import java.util.Objects;
@@ -23,6 +24,11 @@ public class ChaosContainer<SELF extends ChaosContainer<SELF>> extends GenericCo
 
     protected ChaosContainer(String clusterName,String image){
         super(image);
+        this.clusterName = clusterName;
+    }
+
+    public ChaosContainer(DockerImageName dockerImageName, String clusterName){
+        super(dockerImageName);
         this.clusterName = clusterName;
     }
 
