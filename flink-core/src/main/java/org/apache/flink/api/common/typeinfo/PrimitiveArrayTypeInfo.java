@@ -62,6 +62,7 @@ public class PrimitiveArrayTypeInfo<T> extends TypeInformation<T> implements Ato
 
 	public static final PrimitiveArrayTypeInfo<boolean[]> BOOLEAN_PRIMITIVE_ARRAY_TYPE_INFO = new PrimitiveArrayTypeInfo<>(boolean[].class, BooleanPrimitiveArraySerializer.INSTANCE, BooleanPrimitiveArrayComparator.class);
 	public static final PrimitiveArrayTypeInfo<byte[]> BYTE_PRIMITIVE_ARRAY_TYPE_INFO = new PrimitiveArrayTypeInfo<>(byte[].class, BytePrimitiveArraySerializer.INSTANCE, BytePrimitiveArrayComparator.class);
+	public static final PrimitiveArrayTypeInfo<byte[]> FURY_PRIMITIVE_ARRAY_TYPE_INFO = new PrimitiveArrayTypeInfo<>(byte[].class, FuryBytePrimitiveArraySerializer.INSTANCE, BytePrimitiveArrayComparator.class);
 	public static final PrimitiveArrayTypeInfo<short[]> SHORT_PRIMITIVE_ARRAY_TYPE_INFO = new PrimitiveArrayTypeInfo<>(short[].class, ShortPrimitiveArraySerializer.INSTANCE, ShortPrimitiveArrayComparator.class);
 	public static final PrimitiveArrayTypeInfo<int[]> INT_PRIMITIVE_ARRAY_TYPE_INFO = new PrimitiveArrayTypeInfo<>(int[].class, IntPrimitiveArraySerializer.INSTANCE, IntPrimitiveArrayComparator.class);
 	public static final PrimitiveArrayTypeInfo<long[]> LONG_PRIMITIVE_ARRAY_TYPE_INFO = new PrimitiveArrayTypeInfo<>(long[].class, LongPrimitiveArraySerializer.INSTANCE, LongPrimitiveArrayComparator.class);
@@ -212,7 +213,7 @@ public class PrimitiveArrayTypeInfo<T> extends TypeInformation<T> implements Ato
 		String typeName = type.getCanonicalName();
 		if (bytesClassName.equals(typeName)) {
 			if (isFurySerialize) {
-				return (PrimitiveArrayTypeInfo<X>) FURY_BYTE_PRIMITIVE_ARRAY_TYPE_INFO;
+				return (PrimitiveArrayTypeInfo<X>) FURY_PRIMITIVE_ARRAY_TYPE_INFO;
 			} else {
 				return (PrimitiveArrayTypeInfo<X>) BYTE_PRIMITIVE_ARRAY_TYPE_INFO;
 			}
