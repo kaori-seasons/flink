@@ -72,7 +72,7 @@ class PandasConversionTestBase(object):
         for j, name in enumerate(cls.data_type.names):
             data_dict[name] = [cls.data[i][j] for i in range(len(cls.data))]
         # need convert to numpy types
-        import numpy as np
+        import numpy as npfli
         data_dict["f1"] = np.int8(data_dict["f1"])
         data_dict["f2"] = np.int16(data_dict["f2"])
         data_dict["f3"] = np.int32(data_dict["f3"])
@@ -116,6 +116,8 @@ class PandasConversionTests(PandasConversionTestBase):
 
 class PandasConversionITTests(PandasConversionTestBase):
 
+
+    #pandas转rowTypeInfo
     def test_from_pandas(self):
         table = self.t_env.from_pandas(self.pdf, self.data_type, 5)
         self.assertEqual(self.data_type, table.get_schema().to_row_data_type())

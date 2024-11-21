@@ -86,7 +86,16 @@ class TableSchemaTests(PyFlinkTestCase):
         schema = TableSchema(["a", "b", "c"],
                              [DataTypes.INT(), DataTypes.BIGINT(), DataTypes.STRING()])
 
-        field_name = schema.get_field_name(2)
+
+        list = []
+        for i in range(schema.get_field_count()):
+            field_name = schema.get_field_name(i)
+            field_type = schema.get_field_data_type(field_name)
+            field = DataTypes.FIELD(field_name, field_type)
+            list.append(field)
+        expected = DataTypes.ROW(list, nullable=False)
+
+
         field_name_not_exist = schema.get_field_name(3)
 
         self.assertEqual("c", field_name)

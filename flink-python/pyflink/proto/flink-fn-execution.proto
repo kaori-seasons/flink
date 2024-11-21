@@ -283,6 +283,7 @@ message TypeInfo {
     PICKLED_BYTES = 16;
     TUPLE = 17;
     PRIMITIVE_ARRAY = 18;
+    FURY_BYTES = 19;
   }
 
 

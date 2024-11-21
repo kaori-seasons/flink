@@ -184,6 +184,36 @@ class PyFlinkBlinkStreamTableTestCase(PyFlinkTestCase):
     Base class for stream tests of blink planner.
     """
 
+class PyFlinkSerializerITTestCase(PyFlinkTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(PyFlinkITTestCase, cls).setUpClass()
+        gateway = get_gateway()
+        MiniClusterResourceConfiguration = (
+            gateway.jvm.org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration
+            .Builder()
+            .setNumberTaskManagers(8)
+            .setNumberSlotsPerTaskManager(1)
+            .setRpcServiceSharing(
+                get_gateway().jvm.org.apache.flink.runtime.minicluster.RpcServiceSharing.DEDICATED)
+            .withHaLeadershipControl()
+            .build())
+        cls.resource = (
+            get_gateway().jvm.org.apache.flink.test.util.
+            MiniClusterWithClientResource(MiniClusterResourceConfiguration))
+        cls.resource.before()
+
+        cls.env = StreamExecutionEnvironment(
+            get_gateway().jvm.org.apache.flink.streaming.util.TestStreamEnvironment(
+                cls.resource.getMiniCluster(), 2))
+
+    @classmethod
+    def tearDownClass(cls):
+        super(PyFlinkITTestCase, cls).tearDownClass()
+        cls.resource.after()
+
+
     def setUp(self):
         super(PyFlinkBlinkStreamTableTestCase, self).setUp()
         self.env = StreamExecutionEnvironment.get_execution_environment()

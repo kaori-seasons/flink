@@ -27,6 +27,8 @@ import datetime
 import decimal
 from pyflink.table import Row
 from pyflink.table.types import RowKind
+from pyflink.common.fury_singleton import instance
+
 
 cdef class BaseCoderImpl:
     cpdef void encode_to_stream(self, value, LengthPrefixOutputStream output_stream):
@@ -154,6 +156,10 @@ cdef class DataStreamMapCoderImpl(FlattenRowCoderImpl):
         elif field_type == BIG_DEC:
             item_bytes = str(item).encode('utf-8')
             self._encode_bytes(item_bytes, len(item_bytes))
+        elif field_type == FURY_BYTES:
+        	fury = instance
+            fury_bytes = fury.serialize(value)
+            self._encode_bytes(fury_bytes, len(fury_bytes))
 
     cdef void _encode_data_stream_field_complex(self, TypeName field_type, FieldCoder field_coder,
                                            item):
@@ -176,6 +182,10 @@ cdef class DataStreamMapCoderImpl(FlattenRowCoderImpl):
             return pickle.loads(decoded_bytes)
         elif field_type == BIG_DEC:
             return decimal.Decimal(self._decode_bytes().decode("utf-8"))
+        elif field_type == FURY_BYTES:
+        	 fury = instance
+          	 fury_bytes = self._decode_bytes()
+             return fury.deserialize(fury_bytes)
 
     cdef object _decode_data_stream_field_complex(self, TypeName field_type, FieldCoder field_coder):
         if field_type == TUPLE:
@@ -900,6 +910,14 @@ cdef class PickledBytesCoderImpl(FieldCoder):
 
     cpdef TypeName type_name(self):
         return PICKLED_BYTES
+
+cdef class FuryCoderImpl(FieldCoderImpl):
+
+    cpdef CoderType coder_type(self):
+            return SIMPLE
+
+        cpdef TypeName type_name(self):
+            return FURY_BYTES
 
 cdef class TupleCoderImpl(FieldCoder):
     def __cinit__(self, field_coders):

@@ -16,3 +16,4 @@ setuptools>=18.0
 wheel
 apache-beam==2.23.0
 cython==0.29.16
+pyfury==0.4.1

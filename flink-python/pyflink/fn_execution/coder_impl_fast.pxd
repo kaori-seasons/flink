@@ -182,6 +182,9 @@ cdef class TimeCoderImpl(FieldCoder):
 cdef class PickledBytesCoderImpl(FieldCoder):
     pass
 
+cdef class FuryCoderImpl(FieldCoderImpl):
+    pass
+
 cdef class BigDecimalCoderImpl(FieldCoder):
     pass
 

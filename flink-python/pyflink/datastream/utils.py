@@ -28,6 +28,10 @@ from pyflink.java_gateway import get_gateway
 def convert_to_python_obj(data, type_info):
     if type_info == Types.PICKLED_BYTE_ARRAY():
         return pickle.loads(data)
+    elif type_info == Types.FURY_BYTE_ARRAY():
+        return instance.deserialize(data)
+    elif isinstance(type_info, ExternalTypeInfo):
+        return convert_to_python_obj(data, type_info._type_info)
     else:
         gateway = get_gateway()
         pickle_bytes = gateway.jvm.PythonBridgeUtils. \
@@ -52,6 +56,9 @@ def pickled_bytes_to_python_converter(data, field_type):
         for d, d_type in data:
             fields.append(pickled_bytes_to_python_converter(d, d_type))
         return tuple(fields)
+    elif isinstance(type_info, FuryBytesTypeInfo):
+        #TODO 实现多种类型采用fury转换
+        pass
     else:
         data = pickle.loads(data)
         if field_type == Types.SQL_TIME():
