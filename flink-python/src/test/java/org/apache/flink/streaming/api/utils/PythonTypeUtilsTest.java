@@ -72,6 +72,8 @@ public class PythonTypeUtilsTest {
 		typeInformationTypeNameMap.put(BasicTypeInfo.BYTE_TYPE_INFO, FlinkFnApi.TypeInfo.TypeName.BYTE);
 		typeInformationTypeNameMap.put(PickledByteArrayTypeInfo.PICKLED_BYTE_ARRAY_TYPE_INFO,
 			FlinkFnApi.TypeInfo.TypeName.PICKLED_BYTES);
+		typeInformationTypeNameMap.put(FuryByteArrayTypeInfo.FURY_BYTE_ARRAY_TYPE_INFO,
+			FlinkFnApi.TypeInfo.TypeName.FURY_BYTES);
 		typeInformationTypeNameMap.put(BasicTypeInfo.BOOLEAN_TYPE_INFO, FlinkFnApi.TypeInfo.TypeName.BOOLEAN);
 
 		for (Map.Entry<TypeInformation, FlinkFnApi.TypeInfo.TypeName> entry : typeInformationTypeNameMap.entrySet()) {

@@ -1643,7 +1643,7 @@ public class TypeExtractor {
 		if (clazz.isArray()) {
 
 			// primitive arrays: int[], byte[], ...
-			PrimitiveArrayTypeInfo<OUT> primitiveArrayInfo = PrimitiveArrayTypeInfo.getInfoFor(clazz);
+			PrimitiveArrayTypeInfo<OUT> primitiveArrayInfo = PrimitiveArrayTypeInfo.getInfoFor(clazz, isFurySerialize);
 			if (primitiveArrayInfo != null) {
 				return primitiveArrayInfo;
 			}

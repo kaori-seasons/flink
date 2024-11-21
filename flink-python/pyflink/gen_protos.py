@@ -33,7 +33,7 @@ import warnings
 import pkg_resources
 
 # latest grpcio-tools incompatible with latest protobuf 3.6.1.
-GRPC_TOOLS = 'grpcio-tools>=1.3.5,<=1.14.2'
+GRPC_TOOLS = 'grpcio-tools>=1.3.5,<=1.46.3'
 PROTO_PATHS = ['proto']
 PYFLINK_ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_PYTHON_OUTPUT_PATH = os.path.join(PYFLINK_ROOT_PATH, 'fn_execution')
@@ -187,9 +187,9 @@ def _add_license_header(dir, file_name):
 def _check_grpcio_tools_version():
     version = pkg_resources.get_distribution("grpcio-tools").parsed_version
     from pkg_resources import parse_version
-    if version < parse_version('1.3.5') or version > parse_version('1.14.2'):
+    if version < parse_version('1.3.5') or version > parse_version('1.46.3'):
         raise RuntimeError(
-            "Version of grpcio-tools must be between 1.3.5 and 1.14.2, got %s" % version)
+            "Version of grpcio-tools must be between 1.3.5 and 1.46.3, got %s" % version)
 
 
 if __name__ == '__main__':
